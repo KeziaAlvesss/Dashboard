@@ -90,7 +90,7 @@ uploaded_file = st.sidebar.file_uploader(
 
 if uploaded_file is None:
     st.info("👆 Faça o upload de um arquivo Excel ou CSV para começar a análise.")
-    st.image("https://via.placeholder.com/800x400?text=Faça+Upload+do+Relat%C3%B3rio+de+Assist%C3%AAncia", use_column_width=True)
+    st.image("https://via.placeholder.com/800x400?text=Faça+Upload+do+Relat%C3%B3rio+de+Assist%C3%AAncia", use_container_width=True)
     st.stop()
 
 # Carregar dados com base na extensão
@@ -156,9 +156,14 @@ date_range = st.sidebar.date_input(
     max_value=data_max
 )
 
-vendedor_filter = st.sidebar.multiselect(
-    "Vendedor",
-    options=df['VENDEDOR'].dropna().unique(),
+motivo_filter = st.sidebar.multiselect(
+    "Motivo do Defeito",
+    options=df['Motivo Constatado'].dropna().unique(),
+    default=[]
+)
+produto_filter = st.sidebar.multiselect(
+    "Produto",
+    options=df['PRODUTO'].dropna().unique(),
     default=[]
 )
 
@@ -175,10 +180,12 @@ filtered_df = filtered_df[
     (filtered_df['Data'] <= date_range[1])
 ]
 
-if vendedor_filter:
-    filtered_df = filtered_df[filtered_df['VENDEDOR'].isin(vendedor_filter)]
+if motivo_filter:
+    filtered_df = filtered_df[filtered_df['Motivo Constatado'].isin(motivo_filter)]
 if grupo_filter:
     filtered_df = filtered_df[filtered_df['GRUPO'].isin(grupo_filter)]
+if produto_filter:
+    filtered_df = filtered_df[filtered_df['PRODUTO'].isin(produto_filter)]
 
 if len(filtered_df) == 0:
     st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
