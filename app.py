@@ -9,6 +9,7 @@ from plotly.subplots import make_subplots
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
+import re
 
 # CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(
@@ -90,7 +91,7 @@ uploaded_file = st.sidebar.file_uploader(
 
 if uploaded_file is None:
     st.info("👆 Faça o upload de um arquivo Excel ou CSV para começar a análise.")
-    st.image("https://via.placeholder.com/800x400?text=Faça+Upload+do+Relat%C3%B3rio+de+Assist%C3%AAncia", use_container_width=True)
+    st.image("https://via.placeholder.com/800x400?text=Faça+Upload+do+Relatório+de+Assistência", use_container_width=True)
     st.stop()
 
 # Carregar dados com base na extensão
@@ -105,7 +106,33 @@ try:
     # Limpar nomes das colunas
     df.columns = df.columns.str.strip()
 
-    # Verificar colunas obrigatórias
+    # === ADAPTAÇÃO ESSENCIAL: Criar coluna GRUPO a partir do VENDEDOR ===
+    # Como a planilha real não tem coluna "GRUPO", extraímos a região do nome do vendedor
+    def extrair_grupo(vendedor):
+        if pd.isna(vendedor) or vendedor == "":
+            return "OUTROS"
+        vendedor_str = str(vendedor).upper()
+        # Extrair sigla do estado após hífen (ex: "CARLOS DA CRUZ - AL" → "AL")
+        match = re.search(r'-\s*([A-Z]{2})', vendedor_str)
+        if match:
+            return match.group(1)
+        # Tentar identificar por palavras-chave
+        if 'AL' in vendedor_str or 'ALAGOAS' in vendedor_str:
+            return 'AL'
+        elif 'PE' in vendedor_str or 'PERNAMBUCO' in vendedor_str:
+            return 'PE'
+        elif 'PB' in vendedor_str or 'PARAIBA' in vendedor_str:
+            return 'PB'
+        elif 'RN' in vendedor_str:
+            return 'RN'
+        elif 'CE' in vendedor_str:
+            return 'CE'
+        return "OUTROS"
+    
+    # Criar coluna GRUPO derivada
+    df['GRUPO'] = df['VENDEDOR'].apply(extrair_grupo)
+    
+    # Verificar colunas obrigatórias (com GRUPO agora criado)
     colunas_obrigatorias = ['Data Chamada', 'VENDEDOR', 'GRUPO', 'PRODUTO', 'Motivo Constatado', 'TOTAL']
     colunas_faltando = [col for col in colunas_obrigatorias if col not in df.columns]
 
@@ -127,9 +154,11 @@ try:
     # Criar coluna 'Data' como date
     df['Data'] = df['Data Chamada'].dt.date
 
-    # Garantir que 'TOTAL' seja numérico
+    # Garantir que 'TOTAL' seja numérico (lidar com formatação brasileira)
     if not pd.api.types.is_numeric_dtype(df['TOTAL']):
         st.warning("⚠️ A coluna 'TOTAL' não é numérica. Tentando converter...")
+        # Converter valores com vírgula como separador decimal e ponto como milhar
+        df['TOTAL'] = df['TOTAL'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
         df['TOTAL'] = pd.to_numeric(df['TOTAL'], errors='coerce')
         if df['TOTAL'].isna().all():
             st.error("❌ Falha ao converter 'TOTAL' para número.")
@@ -137,6 +166,7 @@ try:
 
 except Exception as e:
     st.error(f"❌ Erro ao carregar ou processar o arquivo: {e}")
+    st.exception(e)
     st.stop()
 
 #  FILTROS SIDEBAR
@@ -168,7 +198,7 @@ produto_filter = st.sidebar.multiselect(
 )
 
 grupo_filter = st.sidebar.multiselect(
-    "Grupo",
+    "Grupo (Região)",
     options=df['GRUPO'].dropna().unique(),
     default=[]
 )
