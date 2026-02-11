@@ -106,34 +106,11 @@ try:
     # Limpar nomes das colunas
     df.columns = df.columns.str.strip()
 
-    # === ADAPTAÇÃO ESSENCIAL: Criar coluna GRUPO a partir do VENDEDOR ===
-    # Como a planilha real não tem coluna "GRUPO", extraímos a região do nome do vendedor
-    def extrair_grupo(vendedor):
-        if pd.isna(vendedor) or vendedor == "":
-            return "OUTROS"
-        vendedor_str = str(vendedor).upper()
-        # Extrair sigla do estado após hífen (ex: "CARLOS DA CRUZ - AL" → "AL")
-        match = re.search(r'-\s*([A-Z]{2})', vendedor_str)
-        if match:
-            return match.group(1)
-        # Tentar identificar por palavras-chave
-        if 'AL' in vendedor_str or 'ALAGOAS' in vendedor_str:
-            return 'AL'
-        elif 'PE' in vendedor_str or 'PERNAMBUCO' in vendedor_str:
-            return 'PE'
-        elif 'PB' in vendedor_str or 'PARAIBA' in vendedor_str:
-            return 'PB'
-        elif 'RN' in vendedor_str:
-            return 'RN'
-        elif 'CE' in vendedor_str:
-            return 'CE'
-        return "OUTROS"
-    
-    # Criar coluna GRUPO derivada
-    df['GRUPO'] = df['VENDEDOR'].apply(extrair_grupo)
+    # Renomear REGIAO para GRUPO (padronização interna do dashboard)
+    df['GRUPO'] = df['REGIAO'].fillna('OUTROS').astype(str)
     
     # Verificar colunas obrigatórias (com GRUPO agora criado)
-    colunas_obrigatorias = ['Data Chamada', 'VENDEDOR', 'GRUPO', 'PRODUTO', 'Motivo Constatado', 'TOTAL']
+    colunas_obrigatorias = ['Data Chamada', 'VENDEDOR', 'REGIAO', 'PRODUTO', 'Motivo Constatado', 'TOTAL']
     colunas_faltando = [col for col in colunas_obrigatorias if col not in df.columns]
 
     if colunas_faltando:
