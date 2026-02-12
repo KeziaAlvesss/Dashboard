@@ -357,6 +357,6 @@ st.dataframe(
 st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center; color: #666; font-size: 12px; margin-top: 20px;'>
-    Dashboard gerado em {datetime.now().strftime('%d/%m/%Y')} | © 2025 Colchões BonSono. Todos os direitos reservados.
+    Dashboard gerado em {datetime.now().strftime('%d/%m/%Y')} | © 2026 Colchões BonSono. Todos os direitos reservados.
 </div>
 """, unsafe_allow_html=True)
