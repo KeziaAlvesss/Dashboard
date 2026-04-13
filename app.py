@@ -202,12 +202,12 @@ if len(filtered_df) == 0:
 st.markdown("### 📈 Métricas Gerais")
 col1, col2, col3, col4 = st.columns(4)
 
-total_atendimentos = len(filtered_df)
+total_atendimentos = filtered_df['NUNOTA'].nunique()
 valor_total = filtered_df['TOTAL'].sum()
 ticket_medio = valor_total / total_atendimentos if total_atendimentos > 0 else 0
 produtos_unicos = filtered_df['PRODUTO'].nunique()
 
-col1.markdown(f"<div class='metric-container'><div class='metric-value'>{total_atendimentos}</div><div class='metric-label'>Atendimentos</div></div>", unsafe_allow_html=True)
+col1.markdown(f"<div class='metric-container'><div class='metric-value'>{total_atendimentos}</div><div class='metric-label'>Assistências</div></div>", unsafe_allow_html=True)
 col2.markdown(f"<div class='metric-container'><div class='metric-value'>R$ {valor_total:,.2f}</div><div class='metric-label'>Valor Total</div></div>", unsafe_allow_html=True)
 col3.markdown(f"<div class='metric-container'><div class='metric-value'>R$ {ticket_medio:,.2f}</div><div class='metric-label'>Ticket Médio</div></div>", unsafe_allow_html=True)
 col4.markdown(f"<div class='metric-container'><div class='metric-value'>{produtos_unicos}</div><div class='metric-label'>Produtos Únicos</div></div>", unsafe_allow_html=True)
@@ -322,24 +322,6 @@ fig_daily.update_layout(
 )
 
 st.plotly_chart(fig_daily, use_container_width=True)
-
-# 5. Valor Total por Vendedor
-st.markdown("### 💼 Valor Total por Vendedor")
-vendedor_valor = filtered_df.groupby('VENDEDOR')['TOTAL'].sum().reset_index().sort_values('TOTAL', ascending=False)
-fig_vendedor = px.bar(
-    vendedor_valor,
-    x='TOTAL',
-    y='VENDEDOR',
-    orientation='h',
-    color='TOTAL',
-    color_continuous_scale='Blues',
-    labels={'TOTAL': 'Valor (R$)', 'VENDEDOR': 'Vendedor'}
-)
-fig_vendedor.update_layout(
-    title="Valor Total de Atendimentos por Vendedor",
-    height=400
-)
-st.plotly_chart(fig_vendedor, use_container_width=True)
 
 # === TABELA DETALHADA - EXCEL ===
 st.markdown("### 📄 Dados Detalhados")
