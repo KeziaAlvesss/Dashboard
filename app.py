@@ -301,8 +301,14 @@ st.plotly_chart(fig_defeito, use_container_width=True)
 # 4. Evolução Diária de Atendimentos
 st.markdown("### 📅 Evolução Diária de Atendimentos")
 
-daily = filtered_df.groupby('Data').size().reset_index(name='Quantidade')
-daily['Data'] = pd.to_datetime(daily['Data']).dt.strftime('%d/%m/%Y')
+# Conta apenas NUNOTA únicas por dia
+daily = (
+    filtered_df.groupby('Data')['NUNOTA']
+    .nunique()
+    .reset_index(name='Quantidade')
+)
+
+daily['Data'] = pd.to_datetime(daily['Data'])
 
 fig_daily = px.line(
     daily,
@@ -314,14 +320,13 @@ fig_daily = px.line(
 )
 
 fig_daily.update_traces(line=dict(width=3))
+
 fig_daily.update_layout(
-    title="Quantidade de Atendimentos por Dia",
+    title="Quantidade de Assistências Únicas por Dia",
     xaxis_title="Data",
-    yaxis_title="Atendimentos",
+    yaxis_title="Assistências",
     hovermode="x unified"
 )
-
-st.plotly_chart(fig_daily, use_container_width=True)
 
 # === TABELA DETALHADA - EXCEL ===
 st.markdown("### 📄 Dados Detalhados")
