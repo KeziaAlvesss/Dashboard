@@ -179,6 +179,12 @@ grupo_filter = st.sidebar.multiselect(
     options=df['GRUPO'].dropna().unique(),
     default=[]
 )
+# 👇 NOVO FILTRO DE VENDEDOR
+vendedor_filter = st.sidebar.multiselect(
+    "Vendedor",
+    options=sorted(df['VENDEDOR'].dropna().unique()),
+    default=[]
+)
 
 # Aplicar filtros
 filtered_df = df.copy()
@@ -193,6 +199,10 @@ if grupo_filter:
     filtered_df = filtered_df[filtered_df['GRUPO'].isin(grupo_filter)]
 if produto_filter:
     filtered_df = filtered_df[filtered_df['PRODUTO'].isin(produto_filter)]
+# 👇 APLICAR FILTRO DE VENDEDOR
+if vendedor_filter:
+    filtered_df = filtered_df[filtered_df['VENDEDOR'].isin(vendedor_filter)]
+
 
 if len(filtered_df) == 0:
     st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
@@ -214,30 +224,44 @@ col4.markdown(f"<div class='metric-container'><div class='metric-value'>{produto
 
 # === GRÁFICOS INTERATIVOS ===
 
-# 1. Mapa de Calor: Defeitos por Produto
-st.markdown("### 🔥 Mapa de Calor: Defeitos por Produto")
-heatmap_data = pd.crosstab(filtered_df['PRODUTO'], filtered_df['Motivo Constatado'])
-if not heatmap_data.empty:
-    fig_heatmap = px.imshow(
-        heatmap_data,
-        text_auto=True,
-        aspect="auto",
-        color_continuous_scale="Blues",
-        labels=dict(x="Motivo", y="Produto", color="Quantidade")
-    )
-    fig_heatmap.update_layout(
-        title="Frequência de Defeitos por Produto",
-        xaxis_title="Motivo Constatado",
-        yaxis_title="Produto",
-        height=600
-    )
-    st.plotly_chart(fig_heatmap, use_container_width=True)
-else:
-    st.info("Nenhum dado disponível para o mapa de calor.")
+# 1. Mapa de Calor: Defeitos por Produto - TOP 10 x TOP 10
+st.markdown("### 🔥 Mapa de Calor: Top 10 Produtos × Top 10 Defeitos")
 
-# 2. Produtos Mais Atendidos
-st.markdown("### 🏆 Produtos Mais Atendidos")
-prod_count = filtered_df['PRODUTO'].value_counts().reset_index()
+# Top 10 produtos mais atendidos
+top_produtos = filtered_df['PRODUTO'].value_counts().head(10).index
+
+# Top 10 motivos mais frequentes
+top_motivos = filtered_df['Motivo Constatado'].value_counts().head(10).index
+
+# Filtrar dataframe
+df_top = filtered_df[
+    (filtered_df['PRODUTO'].isin(top_produtos)) &
+    (filtered_df['Motivo Constatado'].isin(top_motivos))
+]
+
+# Criar crosstab
+heatmap_data = pd.crosstab(df_top['PRODUTO'], df_top['Motivo Constatado'])
+
+fig_heatmap = px.imshow(
+    heatmap_data,
+    text_auto=True,
+    aspect="auto",
+    color_continuous_scale="Blues",
+    labels=dict(x="Motivo", y="Produto", color="Quantidade")
+)
+
+fig_heatmap.update_layout(
+    title="Frequência de Defeitos - Top 10 Produtos × Top 10 Motivos",
+    xaxis_title="Motivo Constatado",
+    yaxis_title="Produto",
+    height=500,
+    xaxis_tickangle=-45
+)
+st.plotly_chart(fig_heatmap, use_container_width=True)
+
+# 2. Produtos Mais Atendidos - TOP 10
+st.markdown("### 🏆 Top 10 - Produtos Mais Atendidos")
+prod_count = filtered_df['PRODUTO'].value_counts().head(10).reset_index()
 prod_count.columns = ['PRODUTO', 'Contagem']
 fig_prod = px.bar(
     prod_count,
@@ -256,19 +280,20 @@ fig_prod.update_layout(
 )
 st.plotly_chart(fig_prod, use_container_width=True)
 
-# 3. Distribuição de Defeitos (Pizza)
-st.markdown("### Distribuição de Motivos de Defeito")
+# 3. Distribuição de Defeitos (Pizza) - TOP 10
+st.markdown("### 🏅 Top 10 - Distribuição de Motivos de Defeito")
 
 defeito_count = filtered_df['Motivo Constatado'].value_counts().reset_index()
 defeito_count.columns = ['Motivo', 'Quantidade']
 
+# 👇 Limita aos 10 maiores
+defeito_count = defeito_count.head(10)
+
 # Paleta de azul personalizada para a empresa BonSono
 cores_azul = [
-    "#003399",   # Azul BonSono
-    "#0052b3",
-    "#0078d4",
-    "#00a6ed",
-    "#80cfff"
+    "#003399", "#0052b3", "#0078d4", "#0078d4",
+    "#00a6ed", "#33b5e5", "#66c2e8", "#80cfff",
+    "#99d6f0", "#b3e0f7"
 ]
 
 fig_defeito = px.pie(
@@ -279,23 +304,14 @@ fig_defeito = px.pie(
     hole=0.4
 )
 
-fig_defeito.update_traces(
-    textinfo='percent',
-    textposition='inside'
-)
-
+fig_defeito.update_traces(textinfo='percent+label', textposition='inside')
 fig_defeito.update_layout(
-    title="Distribuição de Motivos de Defeito",
+    title="Distribuição dos 10 Principais Motivos de Defeito",
     legend_title="Motivo",
-    legend=dict(
-        orientation="v",
-        y=1,
-        x=1.05
-    ),
+    legend=dict(orientation="v", y=1, x=0.98, xanchor="right"),
     height=600,
     width=900
 )
-
 st.plotly_chart(fig_defeito, use_container_width=True)
 
 # 4. Evolução Diária de Atendimentos
